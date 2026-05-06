@@ -1,0 +1,26 @@
+{
+  "name": "raamatukoguapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "setup": "node setup.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvanReimand/RaamatukoguApp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/IvanReimand/RaamatukoguApp/issues"
+  },
+  "homepage": "https://github.com/IvanReimand/RaamatukoguApp#readme",
+  "dependencies": {
+    "mysql2": "^3.22.3"
+  }
+}
