@@ -19,17 +19,26 @@ Simple library + bank database design using MySQL and Node.js.
    ```bash
    npm install
    ```
-2. Initialize sample data:
+2. Import the MySQL dump:
    ```bash
-   node setup.js
+   npm run setup
+   ```
+   If your MySQL server requires a password or custom host, set environment variables before running:
+   ```powershell
+   $env:DB_HOST='127.0.0.1'
+   $env:DB_USER='root'
+   $env:DB_PASSWORD='your-password'
+   npm run setup
    ```
 3. Calculate overdue fines:
    ```bash
-   node index.js
+   npm start
    ```
 
 ## Notes
 
+- This project now uses the schema from `Dump20260513.sql`.
+- Tables in `library_db` are: `lugejad`, `autorid`, `raamatud`, `raamatu_autor`, `laenutus`.
+- Tables in `bank_db` are: `accounts`, `fines`.
 - The fine amount is calculated as `1€` per late day.
-- The `setup.js` script creates sample users, books, loans, and bank accounts.
-- `index.html` is a simple static page with instructions.
+- `index.js` now uses the dump schema and updates the `bank_db` balances.
