@@ -4,20 +4,237 @@
     <meta charset="UTF-8">
     <title>Raamatukogu App</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-        code { background: #f4f4f4; padding: 2px 4px; }
+        body { font-family: Arial, sans-serif; margin: 30px; line-height: 1.6; max-width: 1000px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f4f4f4; }
+        button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
+        input, select { padding: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
+        tr.selected { background: #e8f4ff; }
+        .grid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+        .card { padding: 18px; border: 1px solid #ddd; border-radius: 8px; background: #fff; }
+        .status { margin: 12px 0; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <h1>Raamatukogu + Pank</h1>
-    <p>See projekt on lihtne disain raamatukogu ja panganduse andmebaasi jaoks.</p>
-    <h2>Käivitus</h2>
-    <ol>
-        <li><code>npm install</code></li>
-        <li><code>node setup.js</code></li>
-        <li><code>node index.js</code></li>
-    </ol>
-    <p>Andmebaaside loomine ja äri loogika töötavad Node.js-is, mitte otse brauseris.</p>
+    <h1>Raamatukogu</h1>
+    <p>Vaata raamatuid, laenuta raamat kaheks nädalaks ja tagasta hilinemisel 1€ päevas.</p>
+
+    <section class="card">
+        <h2>Raamatud</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Pealkiri</th>
+                    <th>Aasta</th>
+                    <th>Keel</th>
+                    <th>Eksemplare</th>
+                    <th>Saadaval</th>
+                    <th>Vali</th>
+                </tr>
+            </thead>
+            <tbody id="booksBody"></tbody>
+        </table>
+    </section>
+
+    <div class="grid">
+        <section class="card">
+            <h2>Laenuta raamat</h2>
+            <div>
+                <label>Eesnimi</label>
+                <input id="borrowFirstName" placeholder="Eesnimi" />
+            </div>
+            <div>
+                <label>Perekonnanimi</label>
+                <input id="borrowLastName" placeholder="Perekonnanimi" />
+            </div>
+            <div>
+                <label>Valitud raamat</label>
+                    <input id="selectedBookTitle" placeholder="Vali raamat tabelist" readonly />
+                </div>
+                <div class="status" id="borrowStatus"></div>
+                <button id="borrowButton" disabled>Laenuta valitud raamat</button>
+                <p style="margin-top: 12px; font-size: 13px; color: #555;">Vali raamat tabelist, sisesta nimi ja vajuta Laenuta.</p>
+            </section>
+        <section class="card">
+            <h2>Tagasta raamat</h2>
+            <div>
+                <label>Eesnimi</label>
+                <input id="loanSearchFirstName" placeholder="Eesnimi" />
+            </div>
+            <div>
+                <label>Perekonnanimi</label>
+                <input id="loanSearchLastName" placeholder="Perekonnanimi" />
+            </div>
+            <div style="margin-top: 10px;">
+                <button id="loadLoansButton">Laenud näita</button>
+            </div>
+            <div class="status" id="loanStatus"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Laen ID</th>
+                        <th>Raamat</th>
+                        <th>Laenutatud</th>
+                        <th>Tähtaeg</th>
+                        <th>Tegevus</th>
+                    </tr>
+                </thead>
+                <tbody id="loansBody"></tbody>
+            </table>
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>Tulemused</h2>
+        <pre id="output">Loe raamatuid või tee tegevus.</pre>
+    </section>
+
+    <script>
+        const booksBody = document.getElementById('booksBody');
+        const loansBody = document.getElementById('loansBody');
+            const selectedBookTitle = document.getElementById('selectedBookTitle');
+            const output = document.getElementById('output');
+            const borrowStatus = document.getElementById('borrowStatus');
+            const loanStatus = document.getElementById('loanStatus');
+            let selectedBookId = null;
+            let selectedRow = null;
+
+            async function fetchBooks() {
+                const res = await fetch('/api/books');
+                const data = await res.json();
+                if (!res.ok) {
+                    output.textContent = data.error || 'Viga raamatute laadimisel.';
+                    return;
+                }
+                booksBody.innerHTML = '';
+                selectedBookId = null;
+                selectedBookTitle.value = '';
+                document.getElementById('borrowButton').disabled = true;
+
+                data.books.forEach(book => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${book.raamatu_id}</td>
+                        <td>${book.pealkiri}</td>
+                        <td>${book.aasta || ''}</td>
+                        <td>${book.keel || ''}</td>
+                        <td>${book.eksemplare}</td>
+                        <td>${book.saadaval}</td>
+                        <td><button type="button">Vali</button></td>
+                    `;
+
+                    const button = tr.querySelector('button');
+                    if (book.saadaval < 1) {
+                        button.disabled = true;
+                        button.textContent = 'Pole saadaval';
+                    }
+                    button.addEventListener('click', () => {
+                        if (selectedRow) {
+                            selectedRow.classList.remove('selected');
+                        }
+                        selectedRow = tr;
+                        selectedRow.classList.add('selected');
+                        selectedBookId = book.raamatu_id;
+                        selectedBookTitle.value = `${book.pealkiri} (${book.keel})`;
+                        document.getElementById('borrowButton').disabled = false;
+                        borrowStatus.textContent = 'Raamat valitud. Sisesta nimi ja laenuta.';
+                    });
+
+                    booksBody.appendChild(tr);
+                });
+            }
+
+        async function borrowBook() {
+            borrowStatus.textContent = 'Laenutamine...';
+            const firstName = document.getElementById('borrowFirstName').value.trim();
+            const lastName = document.getElementById('borrowLastName').value.trim();
+            const bookId = selectedBookId;
+            if (!bookId) {
+                borrowStatus.textContent = 'Vali kõigepealt tabelist raamat.';
+                return;
+            }
+            try {
+                const res = await fetch('/api/borrow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName, lastName, bookId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Laenutamine ebaõnnestus.');
+                borrowStatus.textContent = data.message;
+                output.textContent = data.message;
+                await fetchBooks();
+            } catch (err) {
+                borrowStatus.textContent = err.message;
+                output.textContent = err.message;
+            }
+        }
+
+        async function loadLoans() {
+            loanStatus.textContent = 'Laenude laadimine...';
+            loansBody.innerHTML = '';
+            const firstName = document.getElementById('loanSearchFirstName').value.trim();
+            const lastName = document.getElementById('loanSearchLastName').value.trim();
+            if (!firstName || !lastName) {
+                loanStatus.textContent = 'Sisesta ees- ja perekonnanimi.';
+                return;
+            }
+            try {
+                const res = await fetch(`/api/user-loans?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Laenude laadimine ebaõnnestus.');
+                loanStatus.textContent = `Leitud ${data.loans.length} aktiivset laenutust.`;
+                if (data.loans.length === 0) {
+                    loansBody.innerHTML = '<tr><td colspan="5">Puuduvad aktiivsed laenutused.</td></tr>';
+                    return;
+                }
+                data.loans.forEach(loan => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${loan.loan_id}</td>
+                        <td>${loan.pealkiri}</td>
+                        <td>${loan.loan_date}</td>
+                        <td>${loan.due_date}</td>
+                        <td><button data-loan-id="${loan.loan_id}">Tagasta</button></td>
+                    `;
+                    const button = tr.querySelector('button');
+                    button.addEventListener('click', () => returnLoan(loan.loan_id));
+                    loansBody.appendChild(tr);
+                });
+            } catch (err) {
+                loanStatus.textContent = err.message;
+                output.textContent = err.message;
+            }
+        }
+
+        async function returnLoan(loanId) {
+            loanStatus.textContent = 'Tagastamine...';
+            try {
+                const res = await fetch('/api/return', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ loanId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Tagastamine ebaõnnestus.');
+                loanStatus.textContent = data.message;
+                output.textContent = data.message;
+                await fetchBooks();
+                await loadLoans();
+            } catch (err) {
+                loanStatus.textContent = err.message;
+                output.textContent = err.message;
+            }
+        }
+
+        document.getElementById('borrowButton').addEventListener('click', borrowBook);
+        document.getElementById('loadLoansButton').addEventListener('click', loadLoans);
+
+        fetchBooks();
+    </script>
 </body>
 </html>
 

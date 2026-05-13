@@ -27,12 +27,16 @@ Simple library + bank database design using MySQL and Node.js.
    ```powershell
    $env:DB_HOST='127.0.0.1'
    $env:DB_USER='root'
-   $env:DB_PASSWORD='your-password'
+   $env:DB_PASSWORD='mysql'
    npm run setup
    ```
-3. Calculate overdue fines:
+3. Start the browser server:
    ```bash
    npm start
+   ```
+4. Open the browser at:
+   ```text
+   http://localhost:3000
    ```
 
 ## Notes
