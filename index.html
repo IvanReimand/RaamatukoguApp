@@ -192,15 +192,22 @@
                     return;
                 }
                 data.loans.forEach(loan => {
+                    const daysLate = Math.ceil((new Date() - new Date(loan.due_date)) / (1000 * 60 * 60 * 24));
+                    const fine = Math.max(0, daysLate);
+                    
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${loan.loan_id}</td>
                         <td>${loan.pealkiri}</td>
                         <td>${loan.loan_date}</td>
                         <td>${loan.due_date}</td>
-                        <td><button data-loan-id="${loan.loan_id}">Tagasta</button></td>
+                        <td><button data-loan-id="${loan.loan_id}">${fine > 0 ? `Fine: ${fine}€` : 'Tagasta'}</button></td>
                     `;
                     const button = tr.querySelector('button');
+                    if (fine > 0) {
+                        button.style.backgroundColor = '#ff6b6b';
+                        button.style.color = '#fff';
+                    }
                     button.addEventListener('click', () => returnLoan(loan.loan_id));
                     loansBody.appendChild(tr);
                 });
